@@ -1,50 +1,61 @@
-from fastapi import FastAPI, HTTPException
-import uvicorn
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from fastapi import FastAPI, Depends
+from typing import Annotated
+from sqlalchemy import select
 
 app = FastAPI()
 
-books = [
-    {
-        "id": 1,
-        "title": "1984",
-        "author": "George Orwell"
-    },
-    {
-        "id": 2,
-        "title": "To Kill a Mockingbird",
-        "author": "Harper Lee"
-    }
-]
+engine = create_async_engine('sqlite+aiosqlite:///books.db')
 
-@app.get("/books",tags=["Books"],summary="Получить список всех книг")
-def get_books():
-    return books
+new_session = async_sessionmaker(engine, expire_on_commit=False)
 
-@app.get("/books/{book_id}", tags=["Books"], summary="Получить книгу по ID")
-def get_book(book_id: int):
-    for book in books:
-        if book["id"] == book_id:
-            return book
-    raise HTTPException(status_code=404, detail="Book not found")
+async def get_session():
+    async with new_session() as session:
+        yield session
+
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
-class NewBook(BaseModel):
+class Base(DeclarativeBase):
+    pass
+
+class BookModel(Base):
+    __tablename__ = 'books'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str]
+    author: Mapped[str]
+
+@app.post("/setup_database")
+async def setup_database():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+    return {"ok": True, "message": "Database setup complete."}
+
+
+class BookCreateSchema(BaseModel):
     title: str
     author: str
 
-@app.post("/books", tags=["Books"], summary="Добавить новую книгу")
-def create_book(new_book: NewBook):
-    books.append({
-        "id": len(books) + 1,
-        "title": new_book.title,
-        "author": new_book.author,
-    })
-    return {"success": True, "message": "Book added successfully"}
+class BookSchema(BookCreateSchema):
+    id: int
 
-@app.get("/", summary="Главная ручка", tags=["Основные ручки"])
-def root():
-    return "Hello, World!"
+@app.post("/books")
+async def create_book(data: BookCreateSchema, session: SessionDep):
+    new_book = BookModel(
+        title=data.title,
+        author=data.author,
+    )
+    session.add(new_book)
+    await session.commit()
+    return {"ok": True, "message": "Book created successfully."}
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True)
+
+@app.get("/books")
+async def read_books(session: SessionDep):
+    query = select(BookModel)
+    result = await session.execute(query)
+    return result.scalars().all()
