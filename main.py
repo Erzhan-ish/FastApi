@@ -1,61 +1,31 @@
+from fastapi import FastAPI, HTTPException, Response, Depends
+from authx import AuthX, AuthXConfig
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from fastapi import FastAPI, Depends
-from typing import Annotated
-from sqlalchemy import select
 
 app = FastAPI()
 
-engine = create_async_engine('sqlite+aiosqlite:///books.db')
+config = AuthXConfig()
+config.JWT_SECRET_KEY = "SECRET_KEY"
+config.JWT_ACCESS_COOKIE_NAME = "my_access_token"
+config.JWT_TOKEN_LOCATION = ["cookies"]
 
-new_session = async_sessionmaker(engine, expire_on_commit=False)
+security = AuthX(config=config)
 
-async def get_session():
-    async with new_session() as session:
-        yield session
+class UserLoginSchema(BaseModel):
+    username: str
+    password: str
 
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
-
-
-class Base(DeclarativeBase):
-    pass
-
-class BookModel(Base):
-    __tablename__ = 'books'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str]
-    author: Mapped[str]
-
-@app.post("/setup_database")
-async def setup_database():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-    return {"ok": True, "message": "Database setup complete."}
+@app.post("/login")
+def login(creds: UserLoginSchema, response: Response):
+    if creds.username == 'test' and creds.password == 'test':
+        token = security.create_access_token(uid='12345')
+        response.set_cookie(config.JWT_ACCESS_COOKIE_NAME, token)
+        return {"access_token": token}
+    raise HTTPException(status_code=401, detail="Incorrect username or password")
 
 
-class BookCreateSchema(BaseModel):
-    title: str
-    author: str
-
-class BookSchema(BookCreateSchema):
-    id: int
-
-@app.post("/books")
-async def create_book(data: BookCreateSchema, session: SessionDep):
-    new_book = BookModel(
-        title=data.title,
-        author=data.author,
-    )
-    session.add(new_book)
-    await session.commit()
-    return {"ok": True, "message": "Book created successfully."}
 
 
-@app.get("/books")
-async def read_books(session: SessionDep):
-    query = select(BookModel)
-    result = await session.execute(query)
-    return result.scalars().all()
+@app.get("/protected", dependencies=[Depends(security.access_token_required)])
+def protected():
+    return {"data": "SECRET DATA"}
