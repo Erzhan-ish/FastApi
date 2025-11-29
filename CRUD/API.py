@@ -1,10 +1,23 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 from .db import SessionDep
 from .schemas import NewsSchema, NewsItemSchema
 from sqlalchemy import select
 from .models import NewsModel, NewsItemModel
+import os
 
 router = APIRouter()  # ← правильный объект
+
+@router.post("/upload-image/")
+async def upload_image(image: UploadFile = File(...)):
+    save_dir = "images"
+    os.makedirs(save_dir, exist_ok=True)
+    file_path = os.path.join(save_dir, image.filename)
+    contents = await image.read()
+    with open(file_path, "wb") as f:
+        f.write(contents)
+    image_url = f"/{save_dir}/{image.filename}"
+    return {"image_url": image_url}
+
 
 @router.post("/news")
 async def create_news(data: NewsSchema, session: SessionDep):

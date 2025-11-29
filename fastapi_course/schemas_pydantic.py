@@ -23,6 +23,23 @@ class UserSchema(BaseModel):
 
     model_config = ConfigDict(extra='forbid')  # запрет дополнительных полей
 
+# default — значение по умолчанию
+# title — заголовок поля
+# description — описание поля
+# example — пример значения
+# max_length — максимальная длина строки
+# min_length — минимальная длина строки
+# ge — минимальное значение (greater or equal)
+# le — максимальное значение (less or equal)
+# gt — строго больше (greater than)
+# lt — строго меньше (less than)
+# min_items — минимальное количество элементов в списке
+# max_items — максимальное количество элементов в списке
+# regex — регулярное выражение для проверки строки
+# alias — альтернативное имя поля
+# deprecated — пометка, что поле устарело
+# const — значение должно быть константой
+
 
 users = []
 
