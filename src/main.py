@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from .db import Base, engine
-from .API import router  # импортируем router, НЕ app
-from .admin import setup_admin
+from src.db import Base, engine
+from src.api.API import router  # импортируем router, НЕ app
+from src.admin.news_admin import setup_admin
 
 app = FastAPI()
 

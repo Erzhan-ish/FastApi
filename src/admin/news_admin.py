@@ -1,10 +1,9 @@
-from sqladmin import Admin, ModelView
+from sqladmin import Admin
 from fastapi import FastAPI
-from .db import engine
-from .models import NewsModel, NewsItemModel
+from src.db import engine
+from src.models.models import NewsModel, NewsItemModel
 from sqladmin import ModelView
-from fastapi import UploadFile, File
-import os
+from fastapi import File
 
 
 # -------------------------------

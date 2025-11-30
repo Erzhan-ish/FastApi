@@ -1,7 +1,7 @@
-from .db import Base
+from src.db import Base
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, Enum as SQLAlchemyEnum
 from sqlalchemy.orm import relationship
-from .enums import NewsType
+from src.schemas.enums import NewsType
 
 class NewsModel(Base):
     __tablename__ = 'news'

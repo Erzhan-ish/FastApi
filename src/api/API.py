@@ -1,8 +1,8 @@
 from fastapi import APIRouter, UploadFile, File
-from .db import SessionDep
-from .schemas import NewsSchema, NewsItemSchema
+from src.db import SessionDep
+from src.schemas.news import NewsSchema, NewsItemSchema
 from sqlalchemy import select
-from .models import NewsModel, NewsItemModel
+from src.models.models import NewsModel, NewsItemModel
 import os
 
 router = APIRouter()  # ← правильный объект
