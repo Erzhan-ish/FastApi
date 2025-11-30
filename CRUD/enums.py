@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import Enum as PyEnum
 
-class NewsType(str, Enum):
+class NewsType(PyEnum):
     news = "news"
     announcement = "announcement"
     report = "report"

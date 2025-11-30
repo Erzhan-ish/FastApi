@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from .db import Base, engine
 from .API import router  # импортируем router, НЕ app
+from .admin import setup_admin
 
 app = FastAPI()
 
@@ -13,4 +14,5 @@ async def setup_database():
 
 # Подключаем все маршруты из api.py
 app.include_router(router)
+setup_admin(app)
 
